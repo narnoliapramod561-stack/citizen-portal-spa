@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UIG - Spatial Intelligence</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        #map { height: 600px; width: 100%; border-radius: 1rem; }
+        .leaflet-container { background: #0f172a; } /* Dark mode map background */
+    </style>
+</head>
+<body class="bg-slate-900 text-white p-6">
+
+    <div class="max-w-6xl mx-auto">
+        <header class="mb-6 flex justify-between items-end">
+            <div>
+                <h1 class="text-2xl font-bold text-green-400">Spatial Waste Intelligence</h1>
+                <p class="text-slate-400 text-sm">Real-time PCU Distribution & Collection Gaps</p>
+            </div>
+            <div class="text-right">
+                <span id="point-count" class="text-3xl font-mono font-bold text-white">0</span>
+                <span class="block text-xs text-slate-500 uppercase">Active Grid Points</span>
+            </div>
+        </header>
+
+        <div id="map" class="border border-slate-700 shadow-2xl"></div>
+
+        <div class="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="bg-slate-800 p-3 rounded border border-slate-700 text-xs">
+                <span class="inline-block w-3 h-3 bg-green-500 rounded-full mr-2"></span> High Density Zone
+            </div>
+            <div class="bg-slate-800 p-3 rounded border border-slate-700 text-xs text-slate-400">
+                Click pins to view PCU Hash & Credits
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const API_BASE = "http://localhost:8000";
+        
+        // Initialize Map (Centered on Delhi/NCR by default - change as needed)
+        const map = L.map('map').setView([28.6139, 77.2090], 11);
+
+        // Add Dark Mode Tiles (Using CartoDB Voyager Dark)
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        async function loadHeatmap() {
+            try {
+                const response = await fetch(`${API_BASE}/heatmap`);
+                const data = await response.json();
+                
+                document.getElementById('point-count').innerText = data.points.length;
+
+                data.points.forEach(point => {
+                    // Create a marker for each PCU
+                    const marker = L.circleMarker([point.lat, point.long], {
+                        radius: 8,
+                        fillColor: "#22c55e",
+                        color: "#ffffff",
+                        weight: 1,
+                        opacity: 1,
+                        fillOpacity: 0.8
+                    }).addTo(map);
+
+                    // Popup showing the "Proof"
+                    marker.bindPopup(`
+                        <div class="text-slate-900 font-sans">
+                            <strong class="text-green-600">PCU Verified</strong><br>
+                            <b>Type:</b> ${point.type}<br>
+                            <b>Credits:</b> ${point.credits}<br>
+                            <span class="text-[10px] text-slate-400 uppercase">Verified via Image Hash</span>
+                        </div>
+                    `);
+                });
+
+                // Auto-adjust map to fit all points
+                if (data.points.length > 0) {
+                    const groupItems = data.points.map(p => L.circleMarker([p.lat, p.long]));
+                    const group = L.featureGroup(groupItems);
+                    map.fitBounds(group.getBounds().pad(0.1));
+                }
+
+            } catch (err) {
+                console.error("Map failed to load:", err);
+            }
+        }
+
+        loadHeatmap();
+    </script>
+</body>
+</html>

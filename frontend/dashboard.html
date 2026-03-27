@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UIG - Compliance Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-slate-900 text-white p-4 md:p-10">
+
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-green-400">Compliance Intelligence</h1>
+            <p class="text-slate-400">Urban Intelligence Grid | Real-time EPR Tracking</p>
+        </div>
+        <div class="bg-slate-800 px-4 py-2 rounded-lg border border-slate-700">
+            <span class="text-xs text-slate-500 block uppercase">System Status</span>
+            <span class="text-green-500 font-mono">● LIVE_FEED_ACTIVE</span>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+        <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700">
+            <p class="text-slate-500 text-sm mb-1">Total Plastic (PCUs)</p>
+            <h2 id="total-pcu" class="text-3xl font-bold">--</h2>
+        </div>
+        <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700">
+            <p class="text-slate-500 text-sm mb-1">Compliance %</p>
+            <h2 id="comp-pct" class="text-3xl font-bold text-green-400">--%</h2>
+        </div>
+        <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700">
+            <p class="text-slate-500 text-sm mb-1">Days Remaining</p>
+            <h2 id="days-left" class="text-3xl font-bold text-yellow-500">--</h2>
+        </div>
+        <div class="bg-slate-800 p-6 rounded-2xl border border-orange-500/50 bg-orange-500/5">
+            <p class="text-orange-500 text-sm mb-1 font-bold">Predicted Shortfall</p>
+            <h2 id="shortfall" class="text-3xl font-bold text-orange-400">-- kg</h2>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+        <div class="bg-slate-800 p-8 rounded-2xl border border-slate-700">
+            <h3 class="text-lg font-semibold mb-6">Target vs. Achieved</h3>
+            <canvas id="complianceChart"></canvas>
+        </div>
+
+        <div class="bg-slate-800 p-8 rounded-2xl border border-slate-700">
+            <h3 class="text-lg font-semibold mb-6">Material Breakdown</h3>
+            <canvas id="typeChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = "http://localhost:8000"; // Update to your Antigravity URL
+
+        async function refreshDashboard() {
+            try {
+                const response = await fetch(`${API_BASE}/dashboard`);
+                const data = await response.json();
+
+                // Update Metric Numbers
+                document.getElementById('total-pcu').innerText = data.total_credits_pcu;
+                document.getElementById('comp-pct').innerText = data.compliance_pct + "%";
+                document.getElementById('days-left').innerText = data.days_remaining;
+                document.getElementById('shortfall').innerText = data.projected_shortfall + " kg";
+
+                // Update Bar Chart (Target vs Achieved)
+                new Chart(document.getElementById('complianceChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: ['Current Progress'],
+                        datasets: [
+                            { label: 'Achieved', data: [data.total_credits_pcu], backgroundColor: '#4ade80' },
+                            { label: 'Target', data: [data.target_pcu], backgroundColor: '#334155' }
+                        ]
+                    },
+                    options: { indexAxis: 'y', responsive: true, scales: { x: { stacked: false } } }
+                });
+
+                // Update Doughnut Chart (Breakdown)
+                const types = Object.keys(data.breakdown);
+                const counts = Object.values(data.breakdown);
+                new Chart(document.getElementById('typeChart'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: types,
+                        datasets: [{ data: counts, backgroundColor: ['#22c55e', '#3b82f6', '#eab308', '#ec4899', '#a855f7'] }]
+                    }
+                });
+
+            } catch (err) {
+                console.error("Dashboard failed to load:", err);
+            }
+        }
+
+        refreshDashboard();
+        // Auto-refresh every 30 seconds
+        setInterval(refreshDashboard, 30000);
+    </script>
+</body>
+</html>

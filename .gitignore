@@ -1,0 +1,9 @@
+stitch_config.json
+.env
+pci-backend/.env
+pci-backend/local_pci.db
+__pycache__/
+*.pyc
+.DS_Store
+node_modules/
+.next/
