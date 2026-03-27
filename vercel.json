@@ -1,0 +1,5 @@
+{
+  "buildCommand": "cd pci-portal-next && npm run build",
+  "outputDirectory": "pci-portal-next/.next",
+  "installCommand": "cd pci-portal-next && npm install"
+}
